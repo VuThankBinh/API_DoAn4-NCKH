@@ -52,7 +52,7 @@ app.get('/protected', authenticateToken, (req, res) => {
   res.json({ message: 'Đây là một API được bảo vệ', user: req.user });
 });
 
-const PORT = process.env.PORT || 9000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running at port ${PORT}`);
 });

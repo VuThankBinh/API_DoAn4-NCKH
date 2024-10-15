@@ -24,27 +24,38 @@ exports.getUserByEmail = async (req, res) => {
         res.status(500).json({ error: 'Lỗi server' });
     }
 };
-//lỗi này 
-exports.getUserClasses = async (req, res) => {
+exports.getClassCreatedByUser = async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).populate('classes');
+        const user = await User.findById(req.params.userId).select('createdClasses');
         if (!user) {
             return res.status(404).json({ error: 'Không tìm thấy người dùng' });
         }
-
-        const classesWithNames = await Promise.all(user.joinedClasses.map(async (classId) => {
-            const classDetails = await Class.findById(classId);
-            return {
-                _id: classId,
-                name: classDetails ? classDetails.name : 'Không có tên'
-            };
-        }));
-
-        res.json(classesWithNames);
+        
+        // Lấy thông tin chi tiết của các lớp học từ bảng Class
+        const classes = await Class.find({ _id: { $in: user.createdClasses } })
+            .select('name class_id teacher users');  // Chọn các trường cần thiết
+        
+        res.json(classes);
     } catch (error) {
-        console.error('Lỗi khi lấy danh sách lớp học của người dùng:', error);
+        console.error('Lỗi khi lấy danh sách lớp học được tạo bởi người dùng:', error);
         res.status(500).json({ error: 'Lỗi server' });
     }
 };
-
+exports.getClassJoinedByUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).select('joinedClasses');
+        if (!user) {
+            return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+        }
+        
+        // Lấy thông tin chi tiết của các lớp học từ bảng Class
+        const classes = await Class.find({ _id: { $in: user.joinedClasses } })
+            .select('name class_id teacher users'); // Chọn các trường cần thiết
+        
+        res.json(classes);
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách lớp học được tạo bởi người dùng:', error);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+};
 // Thêm các hàm xử lý khác cho người dùng ở đây

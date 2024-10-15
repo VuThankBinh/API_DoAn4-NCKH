@@ -13,6 +13,8 @@ const lessonSchema = new mongoose.Schema({
         options: [{ type: String }],
         correctAnswer: mongoose.Schema.Types.Mixed,
         output: { type: String },
+        input: { type: String },
+        defaultLanguage: { type: String, default: 'sql' },
         // Thêm các trường khác nếu cần
     }]
 });

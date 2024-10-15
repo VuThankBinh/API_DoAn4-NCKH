@@ -28,7 +28,7 @@ exports.createClass = async (req, res) => {
 
         await User.updateOne(
             { email: teacher },
-            { $push: { createdClasses: class_id } }
+            { $push: { createdClasses: newClass._id } }
         );
 
         res.status(201).json({
@@ -67,8 +67,9 @@ exports.joinClass = async (req, res) => {
         }
         classToJoin.users.push(email);
         await classToJoin.save();
-
-        user.joinedClasses.push(class_id);
+        console.log(classToJoin._id);
+        console.log(user);
+        user.joinedClasses.push(classToJoin._id);
         await user.save();
 
         res.status(200).json({ message: 'Tham gia lớp học thành công' });

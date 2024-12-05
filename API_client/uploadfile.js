@@ -4,26 +4,19 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
 const upload = multer({ 
   dest: 'uploads/',
   limits: { fileSize: 50 * 1024 * 1024 } // 50 MB limit
 });
 
-// Cấu hình Google Drive API
-const CLIENT_ID = '492221263426-fq74j5oshb9d5pcrgkq0ukap7ovnm31d.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
-const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
-const REFRESH_TOKEN = '1//04EIlqrRCBtvWCgYIARAAGAQSNwF-L9Irdw728uV6ZBppmtPwMuknL-iod74317nLF13UiBrh1sUpGdogBCIahFX7qVAPn3m9f8w';
-
-const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+let accessToken = "";
 
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
 // Hàm tạo thư mục nếu chưa tồn tại
@@ -57,7 +50,12 @@ async function createFolderIfNotExists(folderName) {
       const fileName = req.file.originalname;
       const folderName = req.body.folderName || 'Classroom2';
       const uploaderEmail = req.body.uploaderEmail; // Email của người tải lên
-      const teacherEmail = req.body.teacherEmail; // Email của giáo viên
+      // accessToken = req.body.accessToken; // Token truy cập của người tải lên
+
+      // Tạo client OAuth2 mới với token truy cập của người dùng
+      const oauth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URI);
+      oauth2Client.setCredentials({ access_token: tokens.access_token });
+      const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
       // Tạo hoặc lấy ID của thư mục
       const folderId = await createFolderIfNotExists(folderName);
@@ -82,19 +80,9 @@ async function createFolderIfNotExists(folderName) {
       await drive.permissions.create({
         fileId: response.data.id,
         requestBody: {
-          role: 'writer',
+          role: 'owner', // Cấp quyền sở hữu cho người tải lên
           type: 'user',
           emailAddress: uploaderEmail
-        },
-      });
-
-      // Cấp quyền cho giáo viên
-      await drive.permissions.create({
-        fileId: response.data.id,
-        requestBody: {
-          role: 'reader',
-          type: 'user',
-          emailAddress: teacherEmail
         },
       });
 
@@ -127,6 +115,49 @@ app.use((err, req, res, next) => {
     message: 'Đã xảy ra lỗi không mong muốn!',
     error: err.message
   });
+});
+
+// Route để bắt đầu xác thực
+app.get('/auth/google', (req, res) => {
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['https://www.googleapis.com/auth/drive.file'],
+  });
+  res.redirect(authUrl);
+});
+
+// Route callback để nhận token
+app.get('/auth/google/callback', async (req, res) => {
+  const { code } = req.query;
+
+  // Kiểm tra xem code có tồn tại không
+  if (!code) {
+    return res.status(400).send('Mã xác thực không hợp lệ.');
+  }
+
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Lưu refresh token để sử dụng sau này
+    const refreshToken = tokens.refresh_token; // Lưu refresh token
+    const accessToken = tokens.access_token; // Lưu access token
+
+    console.log('Access Token:', tokens.access_token);
+    console.log('Refresh Token:', tokens.refresh_token); // Nếu có
+
+    oauth2Client.setCredentials({
+      refresh_token: refreshToken // Sử dụng refresh token để lấy access token mới
+    });
+
+    const newTokens = await oauth2Client.getAccessToken();
+    const newAccessToken = newTokens.token; // Sử dụng access token mới
+
+    res.send('Xác thực thành công! Bạn có thể quay lại ứng dụng.');
+  } catch (error) {
+    console.error('Lỗi khi nhận token:', error);
+    res.status(500).send('Đã xảy ra lỗi khi nhận token.');
+  }
 });
 
 const PORT = 5000;

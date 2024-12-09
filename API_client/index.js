@@ -338,32 +338,6 @@ ENDOFFILE
                       }
                   };
                   break;
-            case 'javascript':
-            {
-                const jsDir = path.join(__dirname, 'temp');
-                const jsFile = path.join(jsDir, 'script.js');
-
-                // Đảm bảo thư mục temp tồn tại
-                await fs.mkdir(jsDir, { recursive: true });
-
-                console.log('[JavaScript] Saving code to:', jsFile);
-                await fs.writeFile(jsFile, data.code);
-                containerConfig = {
-                    Image: 'node:16-slim',
-                    Cmd: ['node', '/temp/script.js'],
-                    AttachStdin: true,
-                    AttachStdout: true,
-                    AttachStderr: true,
-                    OpenStdin: true,
-                    StdinOnce: false,
-                    Tty: false,
-                    HostConfig: {
-                        Binds: [`${jsFile}:/script.js`],
-                        AutoRemove: true
-                    }
-                };
-                break;
-            }
 
 
 

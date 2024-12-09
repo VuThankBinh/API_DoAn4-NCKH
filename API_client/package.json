@@ -15,10 +15,6 @@
     "bcrypt": "^5.1.1",
     "busboy": "^1.6.0",
     "child_process": "^1.0.2",
-<<<<<<< HEAD
-    "compromise": "^14.14.3",
-=======
->>>>>>> 74b5100ff139e6c6b6801f37aa11f48ee0722c4f
     "cors": "^2.8.5",
     "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",

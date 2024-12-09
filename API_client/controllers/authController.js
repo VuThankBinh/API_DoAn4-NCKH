@@ -4,7 +4,7 @@ const User = require('../models/user');
 const { generateOTP, verifyOTP } = require('../utils/otpUtils');
 const { sendOTPEmail } = require('../utils/emailUtils');
 
-const SECRET_KEY = process.env.JWT_SECRET || 'your_secret_key';
+const SECRET_KEY = process.env.JWT_SECRET || 'taisaotokenlaikhonhunaywhy';
 
 exports.register = async (req, res) => {
     try {

@@ -33,6 +33,91 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
+/**
+ * @swagger
+ * tags:
+ *   name: Combined
+ *   description: Các API tổng hợp
+ */
+
+/**
+ * @swagger
+ * /chat:
+ *   post:
+ *     summary: Gửi tin nhắn đến chatbot
+ *     tags: [Combined]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *               sessionId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+
+/**
+ * @swagger
+ * /execute:
+ *   post:
+ *     summary: Thực thi mã code
+ *     tags: [Combined]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - script
+ *               - language
+ *             properties:
+ *               script:
+ *                 type: string
+ *               language:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Thực thi thành công
+ *       429:
+ *         description: Đã đạt giới hạn số lần thực thi
+ */
+
+/**
+ * @swagger
+ * /upload:
+ *   post:
+ *     summary: Tải file lên Google Drive
+ *     tags: [Combined]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               folderName:
+ *                 type: string
+ *               uploaderEmail:
+ *                 type: string
+ *               teacherEmail:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Tải file thành công
+ *       400:
+ *         description: Không có file được tải lên
+ */
+
 // Chatbot route
 router.post('/chat', async (req, res) => {
     try {

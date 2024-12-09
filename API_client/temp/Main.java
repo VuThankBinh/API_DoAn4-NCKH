@@ -10,15 +10,14 @@ public class Main {
         int n = scanner.nextInt();
 
         System.out.println("Enter " + n + " elements:");
+
+        System.out.println("Nhập " + n + " phần tử:");
         int[] arr = new int[n];
         int total = 0;
 
         for(int i = 0; i < n; i++) {
             System.out.print("Enter element " + (i+1) + ": ");
-            arr[i] = scanner.nextInt();
-            total += arr[i];
         }
-
         System.out.print("\nYour array: ");
         for(int num : arr) {
             System.out.print(num + " ");

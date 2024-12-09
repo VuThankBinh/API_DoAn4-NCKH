@@ -1,6 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+<<<<<<< HEAD
+=======
+
+>>>>>>> 74b5100ff139e6c6b6801f37aa11f48ee0722c4f
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
@@ -28,6 +32,7 @@ mongoose.connect('mongodb://localhost:27017/database')
     .then(() => console.log('Kết nối thành công đến MongoDB'))
     .catch(err => console.error('Lỗi kết nối MongoDB:', err));
 app.use(cors({
+<<<<<<< HEAD
     origin: '*', // Cho phép tất cả các domain
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -37,6 +42,17 @@ const io = socketIO(server, {
         origin: '*',
         methods: ['GET', 'POST']
     }
+=======
+  origin: '*', // Cho phép tất cả các domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+const io = socketIO(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+>>>>>>> 74b5100ff139e6c6b6801f37aa11f48ee0722c4f
 });
 app.use(express.json());
 
@@ -63,6 +79,7 @@ res.json({ message: 'Đây là một API được bảo vệ', user: req.user })
 
 // Thêm route để hiển thị danh sách API
 app.get('/api-list', (req, res) => {
+<<<<<<< HEAD
     const routes = [];
 
     // Lấy danh sách routes từ auth
@@ -115,6 +132,60 @@ const swaggerOptions = {
         __dirname + '/routers/*.js'
     ],
 };  
+=======
+  const routes = [];
+
+  // Lấy danh sách routes từ auth
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) { // routes registered directly on the app
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods)
+      });
+    } else if (middleware.name === 'router') { // router middleware 
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          routes.push({
+            path: '/auth' + handler.route.path,
+            methods: Object.keys(handler.route.methods)
+          });
+        }
+      });
+    }
+  });
+
+  res.json(routes);
+});
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'API Documentation',
+      version: '1.0.0',
+      description: 'API Documentation cho hệ thống',
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+  },
+  apis: [
+    './routers/*.js',
+    './API_client/routers/*.js',
+    __dirname + '/routers/*.js'
+  ],
+};
+>>>>>>> 74b5100ff139e6c6b6801f37aa11f48ee0722c4f
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 console.log('Swagger Docs:', swaggerDocs);
@@ -179,6 +250,7 @@ async function ensureImage(imageName) {
 }
 
 io.on('connection', (socket) => {
+<<<<<<< HEAD
     console.log('\n[Socket] Client connected:', socket.id);
     let currentContainer = null;
     let currentStream = null;
@@ -231,12 +303,67 @@ io.on('connection', (socket) => {
                     containerConfig = {
                         Image: cppImage,
                         Cmd: ['/bin/bash', '-c', `
+=======
+  console.log('\n[Socket] Client connected:', socket.id);
+  let currentContainer = null;
+  let currentStream = null;
+  let isWaitingForInput = false;
+
+  socket.on('execute', async (data) => {
+      try {
+          console.log('[Execute] Running code:', data.code);
+
+          // Cleanup old container
+          if (currentContainer) {
+              try {
+                  await currentContainer.stop();
+                  await currentContainer.remove();
+              } catch (error) {
+                  console.error('[Cleanup Error]:', error);
+              }
+          }
+
+          let containerConfig;
+
+          switch (data.language) {
+              case 'python':
+                  containerConfig = {
+                      Image: 'python:3.9-slim',
+                      Cmd: ['python', '-u', '-c', data.code],
+                      AttachStdin: true,
+                      AttachStdout: true,
+                      AttachStderr: true,
+                      OpenStdin: true,
+                      StdinOnce: false,
+                      Tty: false,
+                      HostConfig: {
+                          AutoRemove: true
+                      }
+                  };
+                  break;
+
+              case 'cpp':
+                  const cppDir = path.join(__dirname, 'temp');
+                  const cppFile = path.join(cppDir, 'main.cpp');
+                  const cppImage = 'gcc:latest';
+
+                  // Kiểm tra và tải image nếu cần
+                  await ensureImage(cppImage);
+
+                  await fs.mkdir(cppDir, { recursive: true });
+                  await fs.writeFile(cppFile, data.code);
+
+                  containerConfig = {
+                      Image: cppImage,
+                      Cmd: ['/bin/bash', '-c', `
+>>>>>>> 74b5100ff139e6c6b6801f37aa11f48ee0722c4f
                           set -e
                           echo "Biên dịch code C++..."
                           g++ -o /tmp/program /tmp/main.cpp
                           echo "Chạy chương trình..."
                           /tmp/program
                       `],
+<<<<<<< HEAD
                         AttachStdin: true,
                         AttachStdout: true,
                         AttachStderr: true,
@@ -316,6 +443,87 @@ io.on('connection', (socket) => {
                     containerConfig = {
                         Image: dotnetImage,
                         Cmd: ['/bin/bash', '-c', `
+=======
+                      AttachStdin: true,
+                      AttachStdout: true,
+                      AttachStderr: true,
+                      OpenStdin: true,
+                      StdinOnce: false,
+                      Tty: false,
+                      HostConfig: {
+                          Binds: [`${cppFile}:/tmp/main.cpp`],
+                          AutoRemove: true
+                      }
+                  };
+                  break;
+
+              case 'java':
+                  const javaDir = path.join(__dirname, 'temp');
+                  const javaFile = path.join(javaDir, 'Main.java');
+
+                  // Đảm bảo thư mục temp tồn tại
+                  await fs.mkdir(javaDir, { recursive: true });
+
+                  console.log('[Java] Saving code to:', javaFile);
+                  await fs.writeFile(javaFile, data.code);
+
+                  // Kiểm tra và pull image Java nếu cần
+                  const javaImage = 'openjdk:11';
+                  if (!(await checkImageExists(javaImage))) {
+                      console.log('[Docker] Java image not found, pulling...');
+                      try {
+                          await pullDockerImage(javaImage);
+                      } catch (pullError) {
+                          console.error('[Docker] Error pulling Java image:', pullError);
+                          throw new Error('Không thể tải Java image. Vui lòng thử lại sau.');
+                      }
+                  }
+
+                  console.log('[Docker] Creating Java container...');
+                  containerConfig = {
+                      Image: javaImage,
+                      Cmd: ['/bin/bash', '-c', 'javac /tmp/Main.java && java -cp /tmp Main'],
+                      AttachStdin: true,
+                      AttachStdout: true,
+                      AttachStderr: true,
+                      OpenStdin: true,
+                      StdinOnce: false,
+                      Tty: false,
+                      HostConfig: {
+                          Binds: [`${javaFile}:/tmp/Main.java`],
+                          AutoRemove: true
+                      }
+                  };
+                  break;
+
+              case 'csharp':
+                  const csDir = path.join(__dirname, 'temp');
+                  const csFile = path.join(csDir, 'Program.cs');
+
+                  await fs.mkdir(csDir, { recursive: true });
+                  console.log('[C#] Saving code to:', csFile);
+                  await fs.writeFile(csFile, data.code);
+
+                  const csDockerPath = csFile.replace(/\\/g, '/').replace(/^(\w):/, '//$1');
+                  console.log('[Docker] Mount path:', csDockerPath);
+
+                  // Kiểm tra và pull image .NET SDK nếu cần
+                  const dotnetImage = 'mcr.microsoft.com/dotnet/sdk:6.0';
+                  if (!(await checkImageExists(dotnetImage))) {
+                      console.log('[Docker] .NET SDK image not found, pulling...');
+                      try {
+                          await pullDockerImage(dotnetImage);
+                      } catch (pullError) {
+                          console.error('[Docker] Error pulling .NET SDK image:', pullError);
+                          throw new Error('Không thể tải .NET SDK image. Vui lòng thử lại sau.');
+                      }
+                  }
+
+                  console.log('[Docker] Creating C# container...');
+                  containerConfig = {
+                      Image: dotnetImage,
+                      Cmd: ['/bin/bash', '-c', `
+>>>>>>> 74b5100ff139e6c6b6801f37aa11f48ee0722c4f
                           set -e
                           echo "Setting up C# environment..."
                           cd /tmp
@@ -326,6 +534,7 @@ ENDOFFILE
                           cd MyApp
                           dotnet run
                       `],
+<<<<<<< HEAD
                         AttachStdin: true,
                         AttachStdout: true,
                         AttachStderr: true,
@@ -472,4 +681,138 @@ ENDOFFILE
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Server running at port ${PORT}`);
+=======
+                      AttachStdin: true,
+                      AttachStdout: true,
+                      AttachStderr: true,
+                      OpenStdin: true,
+                      StdinOnce: false,
+                      Tty: false,
+                      HostConfig: {
+                          AutoRemove: true
+                      }
+                  };
+                  break;
+
+
+
+              default:
+                  throw new Error('Ngôn ngữ không được hỗ trợ');
+          }
+
+          // Log trước khi tạo container
+          console.log('[Docker] Container config:', JSON.stringify(containerConfig, null, 2));
+
+          currentContainer = await docker.createContainer(containerConfig);
+          console.log('[Docker] Container created');
+
+          await currentContainer.start();
+          console.log('[Docker] Container started');
+
+          currentStream = await currentContainer.attach({
+              stream: true,
+              stdout: true,
+              stderr: true,
+              stdin: true,
+              hijack: true
+          });
+          console.log('[Docker] Stream attached');
+
+          // Xử lý output stream
+          let buffer = '';
+          currentContainer.modem.demuxStream(currentStream, {
+              write: (chunk) => {
+                  const output = chunk.toString();
+                  console.log('[Output]:', output);
+
+                  // Kiểm tra input prompt
+                  if (output.includes('input(') || output.includes('Nhập')) {
+                      console.log('[Stream] Input prompt detected');
+                      isWaitingForInput = true;
+                  }
+
+                  // Gửi output về client
+                  socket.emit('output', output);
+              }
+          }, {
+              write: (chunk) => {
+                  const error = chunk.toString();
+                  console.error('[Error]:', error);
+                  socket.emit('error', error);
+              }
+          });
+
+      } catch (error) {
+          console.error('[System Error]:', error);
+          socket.emit('error', error.message);
+      }
+  });
+
+  socket.on('input', (input) => {
+      console.log('[Input] Received:', input);
+      console.log('[Input] Waiting status:', isWaitingForInput);
+
+      if (currentStream && isWaitingForInput) {
+          try {
+              console.log('[Input] Sending to container:', input);
+              currentStream.write(input + '\n');
+              isWaitingForInput = false;
+
+              // Echo input về client
+              socket.emit('output', input + '\n');
+
+              console.log('[Input] Input sent successfully');
+          } catch (error) {
+              console.error('[Input Error]:', error);
+              socket.emit('error', 'Không thể gửi input: ' + error.message);
+          }
+      } else {
+          console.error('[Input Error] Not waiting for input or no active stream');
+          socket.emit('error', 'Input không được chấp nhận tại thời điểm này');
+      }
+  });
+
+  socket.on('disconnect', async () => {
+      try {
+          if (currentContainer) {
+              console.log('[Cleanup] Stopping container...');
+              try {
+                  // Thêm timeout cho việc dừng container
+                  await Promise.race([
+                      currentContainer.stop(),
+                      new Promise((_, reject) =>
+                          setTimeout(() => reject(new Error('Timeout')), 5000)
+                      )
+                  ]);
+              } catch (stopError) {
+                  console.log('[Cleanup] Stop error:', stopError.message);
+              }
+
+              console.log('[Cleanup] Removing container...');
+              try {
+                  await currentContainer.remove({ force: true });
+              } catch (removeError) {
+                  if (!removeError.message.includes('already in progress')) {
+                      console.error('[Cleanup] Remove error:', removeError.message);
+                  }
+              }
+              currentContainer = null;
+          }
+
+          // Cleanup temp files
+          try {
+              const sqlFile = path.join(__dirname, 'temp/query.sql');
+              await fs.unlink(sqlFile).catch(() => { });
+          } catch (error) {
+              console.error('[Cleanup] File error:', error.message);
+          }
+      } catch (error) {
+          console.error('[Cleanup] General error:', error.message);
+      }
+  });
+});
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running at port ${PORT}`);
+>>>>>>> 74b5100ff139e6c6b6801f37aa11f48ee0722c4f
 });

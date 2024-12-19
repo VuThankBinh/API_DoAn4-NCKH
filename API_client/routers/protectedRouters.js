@@ -35,7 +35,7 @@ const router = express.Router();
  */
 
 router.get('/user-info', authenticateToken, (req, res) => {
-    res.json({ message: 'Thông tin người dùng', user: req.user });
+    res.json({ message: 'Thông tin người dùng', user: req.user }); 
 });
 
 /**

@@ -36,7 +36,7 @@ const { authenticateToken } = require('../middlewares/gatewayAuth');
  *                     type: string
  */
 router.get('/subjects', lessonController.getSubject);
-//get detail lesson
+
 /**
  * @swagger
  * /lessons/subject/{subjectId}:
@@ -51,8 +51,28 @@ router.get('/subjects', lessonController.getSubject);
  *           type: string
  *     responses:
  *       200:
- *         description:
- *      
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   image:
+ *                     type: string
+ *                   condition:
+ *                     type: string
+ *                   theory:
+ *                     type: string
+ *                   source:
+ *                     type: string
+ *                   subjectID:
+ *                     type: string
  */
 router.get('/subject/:subjectId', lessonController.getDetailLesson);
 
@@ -78,6 +98,60 @@ router.get('/subject/:subjectId', lessonController.getDetailLesson);
  *         description: Thành công
  */
 router.get('/user/:userId/subject/:subjectId', lessonController.getAllLessons);
+
+/**
+ * @swagger
+ * /lessons/{id}:
+ *   get:
+ *     summary: Lấy bài học theo ID
+ *     tags: [Lessons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/:id', lessonController.getLessonById);
+
+/**
+ * @swagger
+ * /lessons/code-exercises/{id}:
+ *   get:
+ *     summary: Lấy danh sách bài tập code theo ID bài học
+ *     tags: [Lessons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/:id/code-exercises', lessonController.getCodeExercisesByLessonId);
+
+/**
+ * @swagger
+ * /lessons/quizz-exercises/{id}:
+ *   get:
+ *     summary: Lấy danh sách bài tập trắc nghiệm theo ID bài học
+ *     tags: [Lessons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/:id/quizz-exercises', lessonController.getQuizzExercisesByLessonId);
 
 /**
  * @swagger
@@ -125,8 +199,8 @@ router.post('/save-lesson', lessonController.saveLesson);
  *                 type: string
  *               code:
  *                 type: string
- *               score:
- *                 type: number
+ *               language:  
+ *                 type: string
  *     responses:
  *       200:
  *         description: Lưu thành công
@@ -161,6 +235,59 @@ router.post('/save-code-exercise', lessonController.saveCodeExercise);
  */
 router.get('/code-exercise/:userId/:lessonId/:codeExerciseId', lessonController.getCodeExercise);
 
-// Tương tự cho các routes còn lại...
+/**
+ * @swagger
+ * /lessons/save-quizz-exercise:
+ *   post:
+ *     summary: Lưu bài tập trắc nghiệm
+ *     tags: [Lessons]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *               score:
+ *                 type: number
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Lưu thành công
+ */
+router.post('/save-quizz-exercise', lessonController.saveQuizzExercise);
 
+/**
+ * @swagger
+ * /lessons/quizz-exercise/{userId}/{lessonId}:
+ *   get:
+ *     summary: Lấy thông tin bài tập trắc nghiệm
+ *     tags: [Lessons]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: lessonId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/quizz-exercise/:userId/:lessonId', lessonController.getQuizzExercise);
+ 
+router.get('/learning-lessons/:userId', lessonController.getLearningLessons);
+
+router.get('/code-exercises/:userId/:subjectId', lessonController.getUserCodeExercises);
 module.exports = router;

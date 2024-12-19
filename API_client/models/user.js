@@ -1,26 +1,35 @@
+const { language } = require('googleapis/build/src/apis/language');
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const codeExerciseSchema = new mongoose.Schema({
-    code: { type: String, default: '' },
+// Schema cho câu trả lời quiz
+const quizzAnswerSchema = new Schema({
+    questionIndex: String,
+    selectedAnswers: [String]
+});
+ 
+// Schema cho quiz
+const quizzSchema = new Schema({
     score: { type: Number, default: 0 },
+    answers: [quizzAnswerSchema],
     condition: { type: String, default: 'Not Started' }
 });
 
-const quizzSchema = new mongoose.Schema({
-    score: { type: Number, default: 0 },
-    answers: [{ type: String }],
-    condition: { type: String, default: 'Not Started' }
-});
-
-const lessonCompletedSchema = new mongoose.Schema({
-    lessonId: { type: String, required: true },
+// Schema cho bài học đã hoàn thành
+const lessonCompletedSchema = new Schema({
+    lessonId: String,
     quantityCodeExercise: { type: Number, default: 0 },
-    codeExercises: [codeExerciseSchema],
-    condition: { type: String, default: 'Not Started' },
+    codeExercises: [{
+        code: String,
+        language: String,
+        condition: String
+    }],
+    condition: { type: Number, default: 0 },
     quizz: quizzSchema
 });
 
-const userSchema = new mongoose.Schema({
+// Schema User
+const userSchema = new Schema({
     email: { type: String, required: true, unique: true },
     accountType: { type: String, required: true },
     password: { type: String },

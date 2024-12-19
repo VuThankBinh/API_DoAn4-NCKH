@@ -51,9 +51,9 @@ exports.getAllLessons = async (req, res) => {
             const status = lessonStatusMap.get(lesson._id.toString());
             console.log(status);
             if (status) {
-                lessonObject.condition = status; // Giữ nguyên trạng thái từ lessonsCompleted
+                lessonObject.condition = status +'/2'; // Giữ nguyên trạng thái từ lessonsCompleted
             } else {
-                lessonObject.condition = 'Not Started'; // Nếu không có trong lessonsCompleted
+                lessonObject.condition = '0/2'; // Nếu không có trong lessonsCompleted
             }
             return lessonObject;
         });
@@ -119,10 +119,10 @@ exports.getQuizzExercisesByLessonId = async (req, res) => {
 };
 exports.saveLesson = async (req, res) => {
     try {
-        const { userId, lessonId, quantityCodeExercise } = req.body;
+        const { userId, lessonId } = req.body;
 
-        if (!userId || !lessonId || !quantityCodeExercise) {
-            return res.status(400).json({ message: 'UserId, lessonId và quantityCodeExercise là bắt buộc' });
+        if (!userId || !lessonId) {
+            return res.status(400).json({ message: 'UserId và lessonId là bắt buộc' });
         }
 
         const user = await User.findById(userId);
@@ -136,19 +136,38 @@ exports.saveLesson = async (req, res) => {
         );
 
         if (existingLessonIndex !== -1) {
-            return res.status(400).json({ message: 'Bài học này đã tồn tại trong lessonsCompleted' });
+            // Kiểm tra điều kiện để cập nhật status
+            const existingLesson = user.lessonsCompleted[existingLessonIndex];
+            existingLesson.quantityCodeExercise = 1;
+            let status = 0;
+
+            const hasQuizz = existingLesson.quizz && existingLesson.quizz.condition === 'Completed';
+            const hasCode = existingLesson.codeExercises && existingLesson.codeExercises.some(ex => ex.condition === 'Completed');
+
+            if (hasQuizz && hasCode) {
+                status = 2;
+            } else if (hasQuizz || hasCode) {
+                status = 1;
+            }
+
+            user.lessonsCompleted[existingLessonIndex].condition = status;
+            await user.save();
+
+            return res.status(200).json({
+                message: 'Cập nhật trạng thái bài học thành công',
+                lessonCompleted: user.lessonsCompleted[existingLessonIndex]
+            });
         }
 
         // Tạo một lessonCompletedSchema mới
         const newLessonCompleted = {
             lessonId,
-            quantityCodeExercise: quantityCodeExercise || 0,
-           
+            condition: 0,
+            quantityCodeExercise: 1// Mặc định là 0 khi mới tạo
         };
 
         // Thêm vào mảng lessonsCompleted
         user.lessonsCompleted.push(newLessonCompleted);
-
         await user.save();
 
         res.status(200).json({
@@ -164,7 +183,7 @@ exports.saveLesson = async (req, res) => {
 
 exports.saveCodeExercise = async (req, res) => {
     try {
-        const { userId, lessonId, codeExerciseId, code, score } = req.body;
+        const { userId, lessonId, codeExerciseId, code, language } = req.body;
 
         if (!userId || !lessonId || !codeExerciseId || !code) {
             return res.status(400).json({ message: 'UserId, lessonId, codeExerciseId và code là bắt buộc' });
@@ -182,7 +201,7 @@ exports.saveCodeExercise = async (req, res) => {
 
         const codeExerciseNumber = parseInt(codeExerciseId.replace('code', ''));
         if (isNaN(codeExerciseNumber) || codeExerciseNumber < 1 || codeExerciseNumber > lessonCompleted.quantityCodeExercise) {
-            return res.status(400).json({ message: 'ID bài tập code không hợp lệ hoặc vượt quá số lượng cho phép' });
+            return res.status(400).json({ message: 'ID bài tập code không hợp lệ hoặc vượt quá số lượng cho phép' + lessonCompleted.quantityCodeExercise });
         }
 
         // Tìm bài tập code theo vị trí trong mảng
@@ -194,15 +213,15 @@ exports.saveCodeExercise = async (req, res) => {
             // Nếu chưa đạt giới hạn, tạo mới bài tập code
             lessonCompleted.codeExercises.push({
                 code: code,
-                score: score || 0,
-                condition: 'Completed'
+                condition: 'Completed',
+                language: language
             });
         } else {
             // Cập nhật bài tập code đã tồn tại
             lessonCompleted.codeExercises[codeExerciseNumber - 1] = {
                 ...lessonCompleted.codeExercises[codeExerciseNumber - 1],
                 code: code,
-                score: score || 0,
+                language: language,
                 condition: 'Completed'
             };
         }
@@ -259,8 +278,7 @@ exports.getCodeExercise = async (req, res) => {
 
 exports.saveQuizzExercise = async (req, res) => {
     try {
-        // const { id } = req.params; // ID của bài học
-        const { id,userId, score, answers } = req.body;
+        const { id, userId, score, answers } = req.body;
 
         if (!userId || !Array.isArray(answers)) {
             return res.status(400).json({ message: 'UserId và answers là bắt buộc' });
@@ -271,28 +289,39 @@ exports.saveQuizzExercise = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy người dùng' });
         }
 
-        let lessonCompleted = user.lessonsCompleted.find(lesson => lesson.lessonId === id);
-        if (!lessonCompleted) {
-            // Nếu bài học chưa tồn tại trong lessonsCompleted, tạo mới
-            lessonCompleted = {
-                lessonId: id,
-                quizz: { score: 0, answers: [], condition: 'Not Started' }
-            };
-            user.lessonsCompleted.push(lessonCompleted);
-        }
+        // Tìm bài học trong lessonsCompleted
+        const lessonIndex = user.lessonsCompleted.findIndex(lesson => lesson.lessonId === id);
+        
+        // Chuyển đổi answers thành định dạng phù hợp
+        const formattedAnswers = answers.map(answer => ({
+            questionIndex: answer.questionIndex.toString(),
+            selectedAnswers: answer.selectedAnswers.map(ans => ans.toString())
+        }));
 
-        // Cập nhật thông tin quizz
-        lessonCompleted.quizz = {
-            score: score || 0,
-            answers: answers,
-            condition: 'Completed'
-        };
+        if (lessonIndex === -1) {
+            // Nếu bài học chưa tồn tại, thêm mới
+            user.lessonsCompleted.push({
+                lessonId: id,
+                quizz: {
+                    score: score || 0,
+                    answers: formattedAnswers,
+                    condition: 'Completed'
+                }
+            });
+        } else {
+            // Nếu bài học đã tồn tại, cập nhật
+            user.lessonsCompleted[lessonIndex].quizz = {
+                score: score || 0,
+                answers: formattedAnswers,
+                condition: 'Completed'
+            };
+        }
 
         await user.save();
 
         res.status(200).json({
             message: 'Cập nhật bài tập quizz thành công',
-            updatedQuizz: lessonCompleted.quizz
+            updatedQuizz: user.lessonsCompleted[lessonIndex === -1 ? user.lessonsCompleted.length - 1 : lessonIndex].quizz
         });
     } catch (error) {
         console.error('Lỗi khi cập nhật bài tập quizz:', error);
@@ -328,6 +357,135 @@ exports.getQuizzExercise = async (req, res) => {
         });
     } catch (error) {
         console.error('Lỗi khi lấy thông tin bài tập quizz:', error);
+        res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+exports.getLearningLessons = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ message: 'UserId là bắt buộc' });
+        }
+
+        const user = await User.findById(userId).select('lessonsCompleted');
+        if (!user) {
+            return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+        }
+
+        // Lọc ra các bài học có condition là "1" hoặc "2"
+        const learningLessons = user.lessonsCompleted.filter(lesson => {
+            return lesson.condition === "1" || lesson.condition === "2";
+        });
+
+        if (learningLessons.length === 0) {
+            return res.status(200).json({ 
+                message: 'Không có bài học nào đã hoàn thành',
+                lessons: [] 
+            });
+        }
+
+        // Lấy thông tin chi tiết của các bài học
+        const lessonDetails = await Promise.all(
+            learningLessons.map(async (lesson) => {
+                const lessonDetail = await Lesson.findById(lesson.lessonId)
+                    .select('_id name image condition theory source subjectID');
+                
+                if (lessonDetail) {
+                    return {
+                        ...lessonDetail.toObject(),
+                        condition: `${lesson.condition}/2`,
+                        progress: {
+                            hasQuizz: lesson.quizz ? true : false,
+                            quizzCompleted: lesson.quizz?.condition === 'Completed',
+                            codeExercises: lesson.codeExercises?.length || 0,
+                            codeCompleted: lesson.codeExercises?.filter(ex => ex.condition === 'Completed').length || 0
+                        }
+                    };
+                }
+                return null;
+            })
+        );
+
+        // Lọc bỏ các bài học null và sắp xếp theo condition
+        const validLessons = lessonDetails
+            .filter(lesson => lesson !== null)
+            .sort((a, b) => {
+                const conditionA = parseInt(a.condition.split('/')[0]);
+                const conditionB = parseInt(b.condition.split('/')[0]);
+                return conditionB - conditionA;
+            });
+
+        res.status(200).json({
+            message: 'Lấy danh sách bài học đã hoàn thành thành công',
+            lessons: validLessons
+        });
+
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách bài học đã hoàn thành:', error);
+        res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+exports.getUserCodeExercises = async (req, res) => {
+    try {
+        const { userId, subjectId } = req.params;
+
+        if (!userId || !subjectId) {
+            return res.status(400).json({ message: 'UserId và subjectId là bắt buộc' });
+        }
+
+        // Lấy thông tin user
+        const user = await User.findById(userId).select('lessonsCompleted');
+        if (!user) {
+            return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+        }
+
+        // Lấy tất cả bài học của môn học
+        const lessons = await Lesson.find({ 
+            subjectID: subjectId,
+            'exercises.type': 'code' // Chỉ lấy những bài học có bài tập code
+        }).select('_id name exercises');
+
+        // Tạo map để tra cứu nhanh thông tin bài tập code đã làm
+        const completedCodeMap = new Map(
+            user.lessonsCompleted.map(lesson => [
+                lesson.lessonId,
+                lesson.codeExercises?.[0] || null
+            ])
+        );
+
+        // Xử lý và format kết quả
+        const codeExercises = lessons.map(lesson => {
+            const codeExercise = lesson.exercises.find(ex => ex.type === 'code');
+            const userProgress = completedCodeMap.get(lesson._id.toString());
+
+            return {
+                lessonId: lesson._id,
+                lessonName: lesson.name,
+                exerciseDetails: {
+                    question: codeExercise?.question || '',
+                    input: codeExercise?.input || '',
+                    output: codeExercise?.output || '',
+                    defaultLanguage: codeExercise?.defaultLanguage || 'sql'
+                },
+                userProgress: {
+                    isCompleted: !!userProgress,
+                    code: userProgress?.code || '',
+                    language: userProgress?.language || '',
+                    condition: userProgress?.condition || 'Not Started'
+                }
+            };
+        });
+
+        res.status(200).json({
+            message: 'Lấy danh sách bài tập code thành công',
+            codeExercises: codeExercises
+        });
+
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách bài tập code:', error);
         res.status(500).json({ message: 'Lỗi server' });
     }
 };

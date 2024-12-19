@@ -1,0 +1,30 @@
+Đề bài:
+Viết hàm bubbleSort(arr) để sắp xếp một mảng số nguyên theo thứ tự tăng dần sử dụng thuật toán sắp xếp nổi bọt.
+Input:
+Mảng [9,1,5,7,8]
+Output mong đợi:
+[1,5,7,8,9]
+
+message: hello
+        fix 
+        bug
+        lỗi
+        check
+        sửa
+        vấn Đề
+        phương pháp
+        thuật toán
+        giúp tôi
+
+code: print("Chương trình tính tổng mảng")
+n = int(input("Nhập số lượng phần tử: "))
+print(f"Nhập {n} phần tử:")
+
+arr = []
+for i in range(n):
+    num = int(input(f"Nhập phần tử thứ {i+1}: "))
+    arr.append(num)
+
+total = sum(arr)
+print(f"\nMảng của bạn: {arr}")
+print(f"Tổng các phần tử: {total}")

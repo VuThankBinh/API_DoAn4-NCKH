@@ -35,9 +35,9 @@ function authenticateToken(req, res, next) {
 function generateToken(user) {
     console.log('Generating token for user:', user);
     return jwt.sign(
-        { userId: user._id, email: user.email },
+        { userId: user._id, email: user.email, tel: user.tel, name: user.name },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' } // Token hết hạn sau 1 giờ
+        { expiresIn: '24h' } // Token hết hạn sau 1 giờ
     );
 }
 

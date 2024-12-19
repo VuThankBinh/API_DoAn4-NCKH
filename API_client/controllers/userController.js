@@ -58,4 +58,17 @@ exports.getClassJoinedByUser = async (req, res) => {
         res.status(500).json({ error: 'Lỗi server' });
     }
 };
+
+exports.updateInformation = async (req, res) => {
+    try {
+        var user = await User.findById(req.body.userId);
+        console.log(`userBefore: ${user}`);
+        user.name = req.body.name;
+        user.tel = req.body.tel;
+        await user.save();
+        res.json({message: 'Cập nhật thông tin thành công', user: user});
+    } catch (error) {
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+};
 // Thêm các hàm xử lý khác cho người dùng ở đây

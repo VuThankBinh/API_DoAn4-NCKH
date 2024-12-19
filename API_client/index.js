@@ -10,6 +10,7 @@ const userRoutes = require('./routers/users');
 const classRoutes = require('./routers/classes');
 const lessonRoutes = require('./routers/lessons');
 const combinedRoutes = require('./routers/combined');
+const protectedRoutes=require('./routers/protectedRouters')
 const jwtSecret = process.env.JWT_SECRET;
 const cors = require('cors');
 const { authenticateToken } = require('./utils/authUtils');
@@ -47,6 +48,7 @@ app.use('/users', userRoutes);
 app.use('/classes', classRoutes);
 app.use('/lessons', lessonRoutes);
 app.use('/combined', combinedRoutes);
+app.use('/protected/',protectedRoutes );
 // API hello
 app.get('/', (req, res) => {
   res.send('API đang chạy rồi bắt đầu test đi');
@@ -201,7 +203,7 @@ io.on('connection', (socket) => {
 
           let containerConfig;
 
-          switch (data.language) {
+          switch (data.language.toLowerCase() ) {
               case 'python':
                   containerConfig = {
                       Image: 'python:3.9-slim',
